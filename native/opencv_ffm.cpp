@@ -3,6 +3,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
+#include <opencv2/objdetect.hpp>
 
 #include <string>
 #include <cstring>
@@ -23,6 +24,7 @@ static void clear_error() {
 #define MAT(p) (reinterpret_cast<cv::Mat*>(p))
 #define CMAT(p) (reinterpret_cast<const cv::Mat*>(p))
 #define CAP(p) (reinterpret_cast<cv::VideoCapture*>(p))
+#define CASCADE(p) (reinterpret_cast<cv::CascadeClassifier*>(p))
 
 #define TRY try { clear_error();
 #define CATCH_RET(ret) } catch (const cv::Exception& e) { set_last_error(e.what()); return ret; } \
@@ -870,6 +872,56 @@ int opencv_videocapture_set(void* cap, int propId, double value) {
 
 double opencv_videocapture_get(void* cap, int propId) {
     TRY return CAP(cap)->get(propId); CATCH_RET(0.0)
+}
+
+/* ============================================================
+ * CascadeClassifier (objdetect module)
+ * ============================================================ */
+void* opencv_cascade_create(void) {
+    TRY return new cv::CascadeClassifier(); CATCH_RET_NULL
+}
+
+void opencv_cascade_delete(void* cascade) {
+    delete CASCADE(cascade);
+}
+
+int opencv_cascade_load(void* cascade, const char* path) {
+    TRY return CASCADE(cascade)->load(std::string(path)) ? 1 : 0; CATCH_RET_ZERO
+}
+
+int opencv_cascade_detect(void* cascade, void* mat, int* out_rects, int max_count) {
+    TRY
+    std::vector<cv::Rect> detections;
+    CASCADE(cascade)->detectMultiScale(*MAT(mat), detections);
+    int n = (int)std::min((int)detections.size(), max_count);
+    for (int i = 0; i < n; i++) {
+        out_rects[i * 4 + 0] = detections[i].x;
+        out_rects[i * 4 + 1] = detections[i].y;
+        out_rects[i * 4 + 2] = detections[i].width;
+        out_rects[i * 4 + 3] = detections[i].height;
+    }
+    return n;
+    CATCH_RET_INT
+}
+
+int opencv_cascade_detect_params(void* cascade, void* mat,
+        double scale_factor, int min_neighbors, int flags,
+        int min_size_w, int min_size_h,
+        int* out_rects, int max_count) {
+    TRY
+    std::vector<cv::Rect> detections;
+    CASCADE(cascade)->detectMultiScale(*MAT(mat), detections,
+            scale_factor, min_neighbors, flags,
+            cv::Size(min_size_w, min_size_h), cv::Size());
+    int n = (int)std::min((int)detections.size(), max_count);
+    for (int i = 0; i < n; i++) {
+        out_rects[i * 4 + 0] = detections[i].x;
+        out_rects[i * 4 + 1] = detections[i].y;
+        out_rects[i * 4 + 2] = detections[i].width;
+        out_rects[i * 4 + 3] = detections[i].height;
+    }
+    return n;
+    CATCH_RET_INT
 }
 
 } // extern "C"

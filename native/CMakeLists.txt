@@ -11,9 +11,9 @@ if(DEFINED ENV{OpenCV_DIR} AND NOT OpenCV_DIR)
 endif()
 
 if(OpenCV_DIR)
-    find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio PATHS ${OpenCV_DIR} NO_DEFAULT_PATH)
+    find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio objdetect PATHS ${OpenCV_DIR} NO_DEFAULT_PATH)
 else()
-    find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio)
+    find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio objdetect)
 endif()
 
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")

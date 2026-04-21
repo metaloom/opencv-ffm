@@ -237,6 +237,23 @@ int    opencv_videocapture_retrieve(void* cap, void* image, int flag);
 int    opencv_videocapture_set(void* cap, int propId, double value);
 double opencv_videocapture_get(void* cap, int propId);
 
+/* ============================================================
+ * CascadeClassifier (objdetect module)
+ * ============================================================ */
+void* opencv_cascade_create(void);
+void  opencv_cascade_delete(void* cascade);
+int   opencv_cascade_load(void* cascade, const char* path);
+
+/* Detect faces. out_rects is a flat int array [x0,y0,w0,h0, x1,...].
+ * Returns number of detections (up to max_count), or -1 on error. */
+int   opencv_cascade_detect(void* cascade, void* mat, int* out_rects, int max_count);
+
+/* Detect faces with parameters. flags=4 is CASCADE_SCALE_IMAGE. */
+int   opencv_cascade_detect_params(void* cascade, void* mat,
+          double scale_factor, int min_neighbors, int flags,
+          int min_size_w, int min_size_h,
+          int* out_rects, int max_count);
+
 #ifdef __cplusplus
 }
 #endif

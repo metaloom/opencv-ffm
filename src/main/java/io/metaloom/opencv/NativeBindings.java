@@ -517,4 +517,22 @@ public final class NativeBindings {
 
     public static final MethodHandle VIDEOCAPTURE_GET = downcall("opencv_videocapture_get",
             FunctionDescriptor.of(JAVA_DOUBLE, PTR, JAVA_INT));
+
+    // ========================================================================
+    // CascadeClassifier (objdetect module)
+    // ========================================================================
+    public static final MethodHandle CASCADE_CREATE = downcall("opencv_cascade_create",
+            FunctionDescriptor.of(PTR));
+
+    public static final MethodHandle CASCADE_DELETE = downcall("opencv_cascade_delete",
+            FunctionDescriptor.ofVoid(PTR));
+
+    public static final MethodHandle CASCADE_LOAD = downcall("opencv_cascade_load",
+            FunctionDescriptor.of(JAVA_INT, PTR, PTR));
+
+    public static final MethodHandle CASCADE_DETECT = downcall("opencv_cascade_detect",
+            FunctionDescriptor.of(JAVA_INT, PTR, PTR, PTR, JAVA_INT));
+
+    public static final MethodHandle CASCADE_DETECT_PARAMS = downcall("opencv_cascade_detect_params",
+            FunctionDescriptor.of(JAVA_INT, PTR, PTR, JAVA_DOUBLE, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, PTR, JAVA_INT));
 }
