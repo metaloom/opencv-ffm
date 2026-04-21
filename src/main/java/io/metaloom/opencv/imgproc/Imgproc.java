@@ -2,10 +2,12 @@ package io.metaloom.opencv.imgproc;
 
 import io.metaloom.opencv.NativeBindings;
 import io.metaloom.opencv.core.*;
+import io.metaloom.opencv.core.MatOfFloat;
+import io.metaloom.opencv.core.MatOfInt;
+import io.metaloom.opencv.core.MatOfPoint;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.util.ArrayList;
 import java.util.List;
 
 import static io.metaloom.opencv.core.Mat.invoke;
@@ -162,6 +164,14 @@ public class Imgproc {
     public static final int CHAIN_APPROX_SIMPLE    = 2;
     public static final int CHAIN_APPROX_TC89_L1   = 3;
     public static final int CHAIN_APPROX_TC89_KCOS = 4;
+
+    // ========================================================================
+    // Histogram comparison methods
+    // ========================================================================
+    public static final int HISTCMP_CORREL = 0;
+    public static final int HISTCMP_CHISQR = 1;
+    public static final int HISTCMP_INTERSECT = 2;
+    public static final int HISTCMP_BHATTACHARYYA = 3;
 
     private Imgproc() {
     }
@@ -511,6 +521,33 @@ public class Imgproc {
         cornerHarris(src, dst, blockSize, ksize, k, Core.BORDER_DEFAULT);
     }
 
+    public static void goodFeaturesToTrack(Mat image, Mat corners, int maxCorners,
+                                           double qualityLevel, double minDistance, Mat mask,
+                                           int blockSize, int gradientSize,
+                                           boolean useHarrisDetector, double k) {
+        MemorySegment maskPtr = mask != null ? mask.nativePtr() : MemorySegment.NULL;
+        int res = invoke(() -> (int) NativeBindings.IMGPROC_GOOD_FEATURES_TO_TRACK.invokeExact(
+                image.nativePtr(), corners.nativePtr(), maxCorners,
+                qualityLevel, minDistance, maskPtr,
+                blockSize, gradientSize, useHarrisDetector ? 1 : 0, k));
+        checkError(res);
+    }
+
+    public static void goodFeaturesToTrack(Mat image, Mat corners, int maxCorners,
+                                           double qualityLevel, double minDistance, Mat mask,
+                                           int blockSize, boolean useHarrisDetector, double k) {
+        goodFeaturesToTrack(image, corners, maxCorners, qualityLevel, minDistance, mask,
+                blockSize, 3, useHarrisDetector, k);
+    }
+
+    public static void goodFeaturesToTrack(Mat image, MatOfPoint corners, int maxCorners,
+                                           double qualityLevel, double minDistance, Mat mask,
+                                           int blockSize, int gradientSize,
+                                           boolean useHarrisDetector, double k) {
+        goodFeaturesToTrack(image, (Mat) corners, maxCorners, qualityLevel, minDistance, mask,
+                blockSize, gradientSize, useHarrisDetector, k);
+    }
+
     public static void HoughLines(Mat image, Mat lines, double rho, double theta, int threshold,
                                    double srn, double stn) {
         int res = invoke(() -> (int) NativeBindings.IMGPROC_HOUGH_LINES.invokeExact(
@@ -610,6 +647,35 @@ public class Imgproc {
         int res = invoke(() -> (int) NativeBindings.IMGPROC_EQUALIZE_HIST.invokeExact(
                 src.nativePtr(), dst.nativePtr()));
         checkError(res);
+    }
+
+    public static void calcHist(List<Mat> images, MatOfInt channels, Mat mask, Mat hist,
+                                MatOfInt histSize, MatOfFloat ranges, boolean uniform, boolean accumulate) {
+        if (images == null || images.size() != 1) {
+            throw new CvException("calcHist currently supports exactly one source image");
+        }
+        Mat image = images.get(0);
+        MemorySegment maskPtr = mask != null ? mask.nativePtr() : MemorySegment.NULL;
+        int res = invoke(() -> (int) NativeBindings.IMGPROC_CALC_HIST_1.invokeExact(
+                image.nativePtr(),
+                hist.nativePtr(),
+                channels.nativePtr(),
+                maskPtr,
+                histSize.nativePtr(),
+                ranges.nativePtr(),
+                uniform ? 1 : 0,
+                accumulate ? 1 : 0));
+        checkError(res);
+    }
+
+    public static void calcHist(List<Mat> images, MatOfInt channels, Mat mask, Mat hist,
+                                MatOfInt histSize, MatOfFloat ranges, boolean uniform) {
+        calcHist(images, channels, mask, hist, histSize, ranges, uniform, false);
+    }
+
+    public static double compareHist(Mat h1, Mat h2, int method) {
+        return invoke(() -> (double) NativeBindings.IMGPROC_COMPARE_HIST.invokeExact(
+                h1.nativePtr(), h2.nativePtr(), method));
     }
 
     // ========================================================================

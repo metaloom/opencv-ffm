@@ -461,11 +461,20 @@ public final class NativeBindings {
     public static final MethodHandle IMGPROC_EQUALIZE_HIST = downcall("opencv_imgproc_equalize_hist",
             FunctionDescriptor.of(JAVA_INT, PTR, PTR));
 
+    public static final MethodHandle IMGPROC_CALC_HIST_1 = downcall("opencv_imgproc_calc_hist_1",
+            FunctionDescriptor.of(JAVA_INT, PTR, PTR, PTR, PTR, PTR, PTR, JAVA_INT, JAVA_INT));
+
+    public static final MethodHandle IMGPROC_COMPARE_HIST = downcall("opencv_imgproc_compare_hist",
+            FunctionDescriptor.of(JAVA_DOUBLE, PTR, PTR, JAVA_INT));
+
     // ========================================================================
     // Imgproc - Additional feature detection (used by video4j)
     // ========================================================================
     public static final MethodHandle IMGPROC_CORNER_HARRIS = downcall("opencv_imgproc_corner_harris",
             FunctionDescriptor.of(JAVA_INT, PTR, PTR, JAVA_INT, JAVA_INT, JAVA_DOUBLE, JAVA_INT));
+
+    public static final MethodHandle IMGPROC_GOOD_FEATURES_TO_TRACK = downcall("opencv_imgproc_good_features_to_track",
+            FunctionDescriptor.of(JAVA_INT, PTR, PTR, JAVA_INT, JAVA_DOUBLE, JAVA_DOUBLE, PTR, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_DOUBLE));
 
     public static final MethodHandle IMGPROC_HOUGH_LINES = downcall("opencv_imgproc_hough_lines",
             FunctionDescriptor.of(JAVA_INT, PTR, PTR, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_INT, JAVA_DOUBLE, JAVA_DOUBLE));
@@ -481,6 +490,18 @@ public final class NativeBindings {
     // ========================================================================
     public static final MethodHandle CORE_SQRT = downcall("opencv_core_sqrt",
             FunctionDescriptor.of(JAVA_INT, PTR, PTR));
+
+    // ========================================================================
+    // Video - Optical flow
+    // ========================================================================
+    public static final MethodHandle VIDEO_CALC_OPTICAL_FLOW_PYR_LK = downcall("opencv_video_calc_optical_flow_pyr_lk",
+            FunctionDescriptor.of(JAVA_INT,
+                    PTR, PTR, PTR, PTR, PTR, PTR,
+                    JAVA_DOUBLE, JAVA_DOUBLE,
+                    JAVA_INT,
+                    JAVA_INT, JAVA_INT, JAVA_DOUBLE,
+                    JAVA_INT,
+                    JAVA_DOUBLE));
 
     // ========================================================================
     // VideoCapture (videoio module)

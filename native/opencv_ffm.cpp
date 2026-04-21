@@ -2,11 +2,14 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/video/tracking.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/objdetect.hpp>
 
+#include <algorithm>
 #include <string>
 #include <cstring>
+#include <vector>
 
 /* ============================================================
  * Thread-local error handling
@@ -801,11 +804,96 @@ int opencv_imgproc_equalize_hist(void* src, void* dst) {
     TRY cv::equalizeHist(*MAT(src), *MAT(dst)); return 0; CATCH_RET_INT
 }
 
+int opencv_imgproc_calc_hist_1(void* image, void* hist,
+        void* channels_mat, void* mask, void* hist_size_mat, void* ranges_mat,
+        int uniform, int accumulate) {
+    TRY
+    cv::Mat channelsInput = *MAT(channels_mat);
+    cv::Mat histSizeInput = *MAT(hist_size_mat);
+    cv::Mat rangesInput = *MAT(ranges_mat);
+
+    cv::Mat channels32s;
+    if (channelsInput.depth() != CV_32S) {
+        channelsInput.convertTo(channels32s, CV_32S);
+    } else {
+        channels32s = channelsInput;
+    }
+    cv::Mat channelsFlat = channels32s.reshape(1, 1);
+
+    cv::Mat histSize32s;
+    if (histSizeInput.depth() != CV_32S) {
+        histSizeInput.convertTo(histSize32s, CV_32S);
+    } else {
+        histSize32s = histSizeInput;
+    }
+    cv::Mat histSizeFlat = histSize32s.reshape(1, 1);
+
+    cv::Mat ranges32f;
+    if (rangesInput.depth() != CV_32F) {
+        rangesInput.convertTo(ranges32f, CV_32F);
+    } else {
+        ranges32f = rangesInput;
+    }
+    cv::Mat rangesFlat = ranges32f.reshape(1, 1);
+
+    int dims = histSizeFlat.cols;
+    if (dims <= 0) {
+        return -1;
+    }
+
+    std::vector<int> channels(dims);
+    std::vector<int> histSize(dims);
+    for (int i = 0; i < dims; i++) {
+        channels[i] = channelsFlat.at<int>(0, i);
+        histSize[i] = histSizeFlat.at<int>(0, i);
+    }
+
+    if (rangesFlat.cols < dims * 2) {
+        return -1;
+    }
+    std::vector<float> rangesValues(dims * 2);
+    for (int i = 0; i < dims * 2; i++) {
+        rangesValues[i] = rangesFlat.at<float>(0, i);
+    }
+    std::vector<const float*> rangesPtrs(dims);
+    for (int i = 0; i < dims; i++) {
+        rangesPtrs[i] = &rangesValues[i * 2];
+    }
+
+    cv::Mat images[] = { *MAT(image) };
+    cv::calcHist(images,
+            1,
+            channels.data(),
+            mask ? *MAT(mask) : cv::Mat(),
+            *MAT(hist),
+            dims,
+            histSize.data(),
+            rangesPtrs.data(),
+            uniform != 0,
+            accumulate != 0);
+    return 0;
+    CATCH_RET_INT
+}
+
+double opencv_imgproc_compare_hist(void* h1, void* h2, int method) {
+    TRY return cv::compareHist(*MAT(h1), *MAT(h2), method); CATCH_RET(0.0)
+}
+
 /* ============================================================
  * Imgproc - Additional feature detection (used by video4j)
  * ============================================================ */
 int opencv_imgproc_corner_harris(void* src, void* dst, int blockSize, int ksize, double k, int borderType) {
     TRY cv::cornerHarris(*MAT(src), *MAT(dst), blockSize, ksize, k, borderType); return 0; CATCH_RET_INT
+}
+
+int opencv_imgproc_good_features_to_track(void* image, void* corners,
+        int maxCorners, double qualityLevel, double minDistance,
+        void* mask, int blockSize, int gradientSize, int useHarrisDetector, double k) {
+    TRY
+    cv::goodFeaturesToTrack(*MAT(image), *MAT(corners), maxCorners, qualityLevel, minDistance,
+            mask ? *MAT(mask) : cv::noArray(), blockSize, gradientSize, useHarrisDetector != 0, k);
+    return 0;
+    CATCH_RET_INT
 }
 
 int opencv_imgproc_hough_lines(void* image, void* lines, double rho, double theta, int threshold, double srn, double stn) {
@@ -825,6 +913,71 @@ int opencv_imgproc_get_rect_sub_pix(void* image, double patchSize_w, double patc
  * ============================================================ */
 int opencv_core_sqrt(void* src, void* dst) {
     TRY cv::sqrt(*MAT(src), *MAT(dst)); return 0; CATCH_RET_INT
+}
+
+/* ============================================================
+ * Video - Optical flow
+ * ============================================================ */
+int opencv_video_calc_optical_flow_pyr_lk(
+        void* prev_img,
+        void* next_img,
+        void* prev_pts,
+        void* next_pts,
+        void* status,
+        void* err,
+        double win_size_w,
+        double win_size_h,
+        int max_level,
+        int criteria_type,
+        int criteria_max_count,
+        double criteria_epsilon,
+        int flags,
+        double min_eig_threshold) {
+    TRY
+    cv::Mat prevPtsMat = *MAT(prev_pts);
+    cv::Mat prevPts32f;
+    if (prevPtsMat.type() != CV_32FC2) {
+        prevPtsMat.convertTo(prevPts32f, CV_32FC2);
+    } else {
+        prevPts32f = prevPtsMat;
+    }
+
+    std::vector<cv::Point2f> prevPtsVec;
+    prevPtsVec.reserve((size_t) prevPts32f.total());
+    cv::Mat prevPtsFlat = prevPts32f.reshape(2, (int) prevPts32f.total());
+    for (int i = 0; i < prevPtsFlat.rows; i++) {
+        const cv::Vec2f p = prevPtsFlat.at<cv::Vec2f>(i, 0);
+        prevPtsVec.emplace_back(p[0], p[1]);
+    }
+
+    std::vector<cv::Point2f> nextPtsVec;
+    std::vector<uchar> statusVec;
+    std::vector<float> errVec;
+    cv::TermCriteria criteria(criteria_type, criteria_max_count, criteria_epsilon);
+    cv::calcOpticalFlowPyrLK(
+            *MAT(prev_img),
+            *MAT(next_img),
+            prevPtsVec,
+            nextPtsVec,
+            statusVec,
+            errVec,
+            cv::Size((int) win_size_w, (int) win_size_h),
+            max_level,
+            criteria,
+            flags,
+            min_eig_threshold);
+
+    cv::Mat nextPtsMat(nextPtsVec, true);
+    nextPtsMat.copyTo(*MAT(next_pts));
+
+    cv::Mat statusMat(statusVec, true);
+    statusMat.copyTo(*MAT(status));
+
+    cv::Mat errMat(errVec, true);
+    errMat.copyTo(*MAT(err));
+
+    return 0;
+    CATCH_RET_INT
 }
 
 /* ============================================================

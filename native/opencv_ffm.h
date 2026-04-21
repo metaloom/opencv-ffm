@@ -208,14 +208,40 @@ int opencv_imgproc_bounding_rect(void* points, int* x, int* y, int* width, int* 
  * Imgproc - Histogram
  * ============================================================ */
 int opencv_imgproc_equalize_hist(void* src, void* dst);
+int opencv_imgproc_calc_hist_1(void* image, void* hist,
+    void* channels_mat, void* mask, void* hist_size_mat, void* ranges_mat,
+    int uniform, int accumulate);
+double opencv_imgproc_compare_hist(void* h1, void* h2, int method);
 
 /* ============================================================
  * Imgproc - Additional feature detection (used by video4j)
  * ============================================================ */
 int opencv_imgproc_corner_harris(void* src, void* dst, int blockSize, int ksize, double k, int borderType);
+int opencv_imgproc_good_features_to_track(void* image, void* corners,
+    int maxCorners, double qualityLevel, double minDistance,
+    void* mask, int blockSize, int gradientSize, int useHarrisDetector, double k);
 int opencv_imgproc_hough_lines(void* image, void* lines, double rho, double theta, int threshold, double srn, double stn);
 int opencv_imgproc_hough_lines_p(void* image, void* lines, double rho, double theta, int threshold, double minLineLength, double maxLineGap);
 int opencv_imgproc_get_rect_sub_pix(void* image, double patchSize_w, double patchSize_h, double center_x, double center_y, void* patch, int patchType);
+
+/* ============================================================
+ * Video - Optical flow
+ * ============================================================ */
+int opencv_video_calc_optical_flow_pyr_lk(
+    void* prev_img,
+    void* next_img,
+    void* prev_pts,
+    void* next_pts,
+    void* status,
+    void* err,
+    double win_size_w,
+    double win_size_h,
+    int max_level,
+    int criteria_type,
+    int criteria_max_count,
+    double criteria_epsilon,
+    int flags,
+    double min_eig_threshold);
 
 /* ============================================================
  * Core - Additional math (used by video4j)
